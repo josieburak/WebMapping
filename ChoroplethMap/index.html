@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+ <html>
+ <head>
+     <meta charset='utf-8' />
+     <title>Swipe between maps</title>
+     <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+     <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js'></script>
+     <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css' rel='stylesheet' />
+		
+     <!-- JS and CSS for the swipe plugin -->
+     <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-compare/v0.4.0/mapbox-gl-compare.js'></script>
+     <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-compare/v0.4.0/mapbox-gl-compare.css' type='text/css' />
+      <style>
+
+#title { 
+                position: absolute;
+                z-index: 9999; 
+                background-color:white; 
+                opacity: 80%; 
+                text-align: center 
+            }
+
+      body { margin:0; padding:0;overflow: hidden;}
+      body * {
+         -webkit-touch-callout: none;
+           -webkit-user-select: none;
+          -moz-user-select: none;
+           -ms-user-select: none;
+               user-select: none;
+          }
+		 
+     .mapboxgl-compare {
+            background-color: #020202;
+     }
+
+
+      .map {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 100%;
+           }
+
+            /*  style for items with the class "LegendContainer" */
+   .LegendContainer {
+     position: absolute;
+     bottom: 20px;
+     left: 20px;
+     z-index: 2;
+     width: 300px;
+     height: 40px;
+     background: rgba(80, 80, 80, .75);
+     transition: width 2s, height 2s; /* this is the time it takes for the container to transition */
+     border-radius: 7px;
+   }
+
+   /*  style for items with the class "descriptionPanel" */
+   .descriptionPanel {
+     position: absolute;
+     bottom: 65px;
+     left: 20px;
+     z-index: 2;
+     width: 300px;
+     height: 40px;
+     background: rgba(80, 80, 80, .75);
+     transition: width 2s, height 2s;
+     overflow: hidden;
+     border-radius: 7px;
+   }
+
+   /*  style for items with the class "descriptionPanel" when active */
+   .LegendContainer:active {
+     width: 240px;
+     height: 250px;
+   }
+
+   /* style for items with the class "legendItem" */
+   .legendItem {
+       margin: 0px;
+       padding-left: 10px;
+       display:inline-block;
+       margin:auto;
+       transform: translate(50%, 50%);
+   }
+        
+
+   /* style for items with the class "layerDescription" */
+   .layerDescription {
+     color: white;
+     padding-left: 10px;
+   }
+
+        
+   .renter {
+         color:#cc00c2;
+   }
+   .owner{
+         color:#00d2e6;
+   }
+
+   /* style for items with the class "chevron" */
+   .chevron {
+     position: relative;
+     margin-left: 45%;
+     font-size: x-large;
+     color: white;
+   }
+
+           
+
+      </style>
+ </head>
+ <body>
+ <!--   -->
+    <div id='title'>
+        <h1>Dog and Cat Ownership by State </h1>
+        <h2>By: Josie Burak</h2></div>
+
+     <div id="comparison-container">
+      		<div id='dogs' class='map'></div>  <!-- div for dogs map div -->
+      		<div id='cats' class='map'></div> <!--  div for cats map div -->
+  		</div>
+        
+ <!-- map description panel -->
+          <div class="descriptionPanel" id="descriptionPanel" style="height: 300px;">
+             <span onClick=panelSelect() id="glyph" class="chevron glyphicon glyphicon-chevron-down"></span>
+             <hr/>
+             <h4>WHAT AM I LOOKING AT?</h4>
+             <p style="margin-left: 10px; margin-right: 10px;">
+                Explore the United States' pet companionship rates with this interactive map showcasing dog and cat ownership percenatges by state. Discover the nation's pet preferences and distribution, offering insights into the diverse pet culture across America. Darker colors indicate higher ownership rates, while lighter colors indicate low ownership rates. </br>
+             </span > Description from Chat GPT  </span> 
+            </p>
+            </div>
+
+              <!-- map legend -->
+              <div class="LegendContainer">
+                <div class="legendItem">
+                    <span class="owner">&#11044;</span>
+                    <span class="layerDescription">Owners</span>
+                </div>
+                <div class="legendItem">
+                    <span class="renter">&#11044;</span>
+                    <span class="layerDescription">Renters</span>
+                </div>
+              </div>
+
+   
+
+     <script>
+ // Set bounds to outer america.
+ const bounds = [
+        [-135.055546, 20.081223], // Southwest coordinates
+        [-57.424649, 54.951479] // Northeast coordinates
+    ];
+
+    mapboxgl.accessToken = 'pk.eyJ1Ijoiam9zaWVidXJhayIsImEiOiJjbHVsaGloM2UxMXc4Mm1saDk5eG5xNzRxIn0.0PytKS64XbeoFIPkM5RWLw';
+    var dogsMap = new mapboxgl.Map({
+        container: 'dogs', // dogs map div 
+        style: 'mapbox://styles/mapbox/light-v10', // Mapbox dark style 
+        center: [-96.44834, 39.43046], 
+        zoom: 4,
+        maxBounds: bounds // Set the map's geographical boundaries
+    });
+
+    
+    dogsMap.on('load', function() {
+        dogsMap.addLayer({
+            id: 'dogs Data',
+            type: "fill",
+            source: {
+                type: 'vector',
+                url: 'mapbox://josieburak.2dhsk463'  //input your tileset ID url e.g. 'mapbox://jomerson.6ykhlovc' 
+            },
+                'source-layer': 'StatesData-1bh92e', //input your source layer name e.g. 'Owner-Renter-Pop-ca08iw'
+                paint: {
+             'fill-color': 
+               ["step",
+                ["get", "PetOwner_1"],
+                "#deebf7",
+                9.0,
+                "#c6dbef",
+                19.0,
+                "#9ecae1",
+                29.0,
+                "#6baed6",
+                38.0,
+                 "#4292c6",
+                48.0,
+                 "#2171b5",
+                58.0,
+                  "#084594"
+                
+
+                
+                 ],
+               "fill-opacity": 0.7 
+           }       
+             
+
+            });
+
+        });
+      
+        // When a click event occurs on a feature in the places layer, open a popup at the
+        // location of the feature, with description HTML from its properties.
+        dogsMap.on('click', 'dogs Data', (e) => {
+            console.log("clickty!!")
+            // Copy coordinates array.
+            const coordinates = e.lngLat;
+            var description = "Dog Ownership Rate: "  + e.features[0].properties.PetOwner_1 + "% <br>";
+            
+            //Above is my popup description
+
+            // Ensure that if the map is zoomed out such that multiple
+            // copies of the feature are visible, the popup appears
+            // over the copy being pointed to.
+            while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+            }
+
+            new mapboxgl.Popup()
+                .setLngLat(coordinates)
+                .setHTML(description)
+                .addTo(dogsMap);
+        });
+
+
+   var catsMap = new mapboxgl.Map({
+        container: 'cats', // cats map div 
+        style: 'mapbox://styles/mapbox/light-v10', // Mapbox light style so we can observe the swipe
+        center: [-96.44834, 39.43046],// Use the same center as your other map so that they are perfectly aligned
+        zoom: 4, 
+        maxBounds: bounds // Set the map's geographical boundaries
+    });
+
+    catsMap.on('load', function() {
+        catsMap.addLayer({
+            id: 'cats Data',
+            type: "fill",
+            source: {
+                type: 'vector',
+                url: 'mapbox://josieburak.2dhsk463' //input your tileset ID URL
+            },
+                'source-layer': 'StatesData-1bh92e', //input your source layer name e.g. Owner-Renter-Pop-dr7310
+               paint: {
+          'fill-color': 
+            ["step",
+                ["get", "PetOwner_3"],
+                "#fde0dd",
+                6.0,
+                 "#fcc5c0",
+                12.0,
+                 "#fa9fb5",
+                19.0,
+                 "#f768a1",
+                25.0,
+                 "#dd3497",
+                31.0,
+                  "#ae017e",
+                38.0,
+                  "#7a0177"
+
+                
+               ],
+               "fill-opacity": 0.7 
+            }
+ });
+ });
+
+// When a click event occurs on a feature in the places layer, open a popup at the
+        // location of the feature, with description HTML from its properties.
+        catsMap.on('click', 'cats Data', (e) => {
+            console.log("clickty!!")
+            // Copy coordinates array.
+            const coordinates = e.lngLat;
+            var description = "Cat Ownership Rate: "  + e.features[0].properties.PetOwner_3 + "% <br>";
+            
+            //Above is my popup description
+
+            // Ensure that if the map is zoomed out such that multiple
+            // copies of the feature are visible, the popup appears
+            // over the copy being pointed to.
+            while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+            }
+
+            new mapboxgl.Popup()
+                .setLngLat(coordinates)
+                .setHTML(description)
+                .addTo(catsMap);
+        });
+
+    // A selector or reference to HTML element
+    var container = '#comparison-container';
+
+    var map = new mapboxgl.Compare(dogsMap, catsMap, container, {
+    })
+
+     </script>
+
+ </body>
+ </html>
